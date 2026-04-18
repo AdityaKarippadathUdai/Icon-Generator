@@ -1,40 +1,419 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Icon Generator</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icon Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Variables ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0a;
+      --surface:   #111111;
+      --border:    #222222;
+      --accent:    #e8ff47;
+      --accent-dim:#b8cc2a;
+      --text:      #f0f0f0;
+      --muted:     #555555;
+      --radius:    6px;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 24px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .logo-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      border: 1px solid var(--accent);
+      padding: 4px 10px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: var(--font-head);
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Card ────────────────────────────────────────────────────────── */
+    .card {
+      width: 100%;
+      max-width: 560px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 36px;
+    }
+
+    /* ── Form Elements ───────────────────────────────────────────────── */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+      appearance: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder {
+      color: var(--muted);
+    }
+
+    /* Custom select arrow */
+    .select-wrap {
+      position: relative;
+    }
+
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    /* Two-col row */
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* ── Button ──────────────────────────────────────────────────────── */
+    .btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      background: var(--accent);
+      color: #0a0a0a;
+      font-family: var(--font-head);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn:hover  { background: #f5ff7a; }
+    .btn:active { transform: scale(0.98); }
+
+    .btn:disabled {
+      background: var(--border);
+      color: var(--muted);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Status ──────────────────────────────────────────────────────── */
+    #status {
+      margin-top: 20px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      min-height: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    #status.error  { color: #ff5f5f; }
+    #status.active { color: var(--accent); }
+
+    /* ── Results ─────────────────────────────────────────────────────── */
+    #results {
+      width: 100%;
+      max-width: 560px;
+      margin-top: 40px;
+    }
+
+    .results-label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .img-wrap {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      border-radius: var(--radius);
+      aspect-ratio: 1;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeUp 0.35s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      padding: 12px;
+    }
+
+    .download-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: var(--accent);
+      color: #0a0a0a;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .img-wrap:hover .download-btn { opacity: 1; }
+
+    /* ── Spinner ─────────────────────────────────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
+
 <body>
 
-<h2>AI Icon Generator</h2>
+  <!-- Header -->
+  <header>
+    <div class="logo-tag">AI · Icon Generator</div>
+    <h1>Make<span>Icons</span></h1>
+    <p class="subtitle">Stable Diffusion · Flat Vector Style</p>
+  </header>
 
-<input id="prompt" placeholder="coffee cup">
-<button onclick="gen()">Generate</button>
+  <!-- Form Card -->
+  <div class="card">
+    <div class="field">
+      <label for="prompt">Describe your icon</label>
+      <input
+        id="prompt"
+        type="text"
+        placeholder="e.g. a camera, a lightning bolt, a leaf…"
+        autocomplete="off"
+      />
+    </div>
 
-<div id="out"></div>
+    <div class="row">
+      <div class="field">
+        <label for="style">Style</label>
+        <div class="select-wrap">
+          <select id="style">
+            <option value="minimal">Minimal</option>
+            <option value="filled">Filled</option>
+            <option value="neon">Neon</option>
+          </select>
+        </div>
+      </div>
 
-<script>
-async function gen() {
-    const prompt = document.getElementById("prompt").value;
+      <div class="field">
+        <label for="num_images">Count (1–4)</label>
+        <input
+          id="num_images"
+          type="number"
+          min="1"
+          max="4"
+          value="1"
+        />
+      </div>
+    </div>
 
-    const res = await fetch("/generate-icon", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({prompt})
+    <button class="btn" id="generateBtn" onclick="handleGenerate()">
+      Generate
+    </button>
+
+    <div id="status"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" hidden>
+    <p class="results-label">Output</p>
+    <div class="grid" id="imageGrid"></div>
+  </div>
+
+  <script>
+    async function handleGenerate() {
+      const prompt    = document.getElementById('prompt').value.trim();
+      const style     = document.getElementById('style').value;
+      const numImages = parseInt(document.getElementById('num_images').value, 10);
+      const btn       = document.getElementById('generateBtn');
+      const status    = document.getElementById('status');
+
+      // Basic validation
+      if (!prompt) {
+        setStatus('Enter a prompt first.', 'error');
+        return;
+      }
+      if (numImages < 1 || numImages > 4) {
+        setStatus('Count must be between 1 and 4.', 'error');
+        return;
+      }
+
+      // Loading state
+      btn.disabled = true;
+      setStatus('<span class="spinner"></span>Generating…', 'active');
+      document.getElementById('results').hidden = true;
+      document.getElementById('imageGrid').innerHTML = '';
+
+      try {
+        const res = await fetch('/generate-icon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, style, num_images: numImages }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `Server error ${res.status}`);
+        }
+
+        const data = await res.json();
+        renderImages(data.images, prompt);
+        setStatus(`${data.images.length} icon${data.images.length > 1 ? 's' : ''} generated.`, '');
+
+      } catch (err) {
+        setStatus(`Error: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderImages(images, prompt) {
+      const grid    = document.getElementById('imageGrid');
+      const section = document.getElementById('results');
+
+      images.forEach((b64, i) => {
+        const src  = `data:image/png;base64,${b64}`;
+        const wrap = document.createElement('div');
+        wrap.className = 'img-wrap';
+        wrap.style.animationDelay = `${i * 80}ms`;
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = `${prompt} icon ${i + 1}`;
+
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'download-btn';
+        dlBtn.textContent = '↓ Save';
+        dlBtn.onclick = () => downloadImage(src, `icon-${i + 1}.png`);
+
+        wrap.appendChild(img);
+        wrap.appendChild(dlBtn);
+        grid.appendChild(wrap);
+      });
+
+      section.hidden = false;
+    }
+
+    function downloadImage(src, filename) {
+      const a = document.createElement('a');
+      a.href = src;
+      a.download = filename;
+      a.click();
+    }
+
+    function setStatus(html, type) {
+      const el = document.getElementById('status');
+      el.innerHTML = html;
+      el.className = type;
+    }
+
+    // Allow Enter key to trigger generation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleGenerate();
     });
-
-    const data = await res.json();
-
-    const out = document.getElementById("out");
-    out.innerHTML = "";
-
-    data.images.forEach(img => {
-        const el = document.createElement("img");
-        el.src = "data:image/png;base64," + img;
-        el.width = 128;
-        out.appendChild(el);
-    });
-}
-</script>
+  </script>
 
 </body>
 </html>
