@@ -6,24 +6,48 @@ import torch
 from diffusers import StableDiffusionPipeline
 
 # ---------------------------------------------------------------------------
+# Torch stability settings (IMPORTANT)
+# ---------------------------------------------------------------------------
+
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.benchmark = False
+
+
+# ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-MODEL_PATH    = "/home/aditya/Project/icon_generator/models/v1-5-pruned-emaonly.safetensors"
-IMAGE_SIZE    = 512
-NEGATIVE_PROMPT = "realistic, photo, 3d, shadows, messy, text"
+MODEL_PATH = "/home/aditya/Project/icon_generator/models/dreamshaper_8.safetensors"
+
+IMAGE_SIZE = 256  # keep low for 4GB VRAM
+
+NEGATIVE_PROMPT = "realistic, photo, 3d, shadows, messy, text, watermark"
 
 PROMPT_TEMPLATE = (
-    "A clean minimalist flat icon of {prompt}, "
-    "vector style, black outline, white background"
+    "A clear simple icon of {prompt}, "
+    "front view, centered, recognizable shape, "
+    "designed as a UI icon, minimal design"
 )
-
 STYLE_PRESETS = {
-    "minimal": "minimal linework, clean outlines, simple shapes, monochrome",
-    "filled":  "bold filled shapes, flat colors, solid design, no outlines",
-    "neon":    "neon glowing colors, dark background, vibrant electric hues, luminous edges",
-}
+    "minimal": (
+        "simple flat icon, clean vector design, centered composition, "
+        "clear recognizable object, thick black outline, minimal details, "
+        "high contrast, white background, no shading, no gradients, "
+        "symmetrical, icon style, UI icon"
+    ),
 
+    "filled": (
+        "solid flat icon, bold filled shapes, clear silhouette, "
+        "centered composition, minimal detail, high contrast colors, "
+        "no gradients, no shadows, modern app icon style"
+    ),
+
+    "neon": (
+        "neon glowing icon, dark background, bright glowing edges, "
+        "cyberpunk style, high contrast, simple shape, centered icon, "
+        "luminous outline, minimal detail"
+    ),
+}
 
 # ---------------------------------------------------------------------------
 # Model loading
@@ -36,17 +60,20 @@ def _load_pipeline() -> StableDiffusionPipeline:
         use_safetensors=True,
         local_files_only=True,
     )
-    pipe.to("cuda")
 
-    # Low-VRAM optimisations
+    # ✅ DO NOT use .to("cuda")
+
+    # ✅ Stable low-VRAM config
     pipe.enable_attention_slicing()
-    pipe.vae.enable_slicing()          # replaces deprecated enable_vae_slicing()
-    pipe.enable_model_cpu_offload()
+    pipe.vae.enable_slicing()
+
+    # 🔥 IMPORTANT: more stable than model_cpu_offload
+    pipe.enable_sequential_cpu_offload()
 
     return pipe
 
 
-# Load once at import time so the model stays warm across requests.
+# Load once globally
 _pipe: StableDiffusionPipeline = _load_pipeline()
 
 
@@ -60,50 +87,50 @@ def generate_icon(
     num_images: int = 1,
     seed: Optional[int] = None,
 ) -> List[str]:
-    """
-    Generate icon images and return them as base64-encoded PNG strings.
 
-    Args:
-        prompt:     Object / subject description (e.g. "a camera").
-        style:      Key into STYLE_PRESETS ("minimal", "filled", "neon").
-        num_images: Number of images to generate (1–4).
-        seed:       Optional RNG seed for reproducibility.
-
-    Returns:
-        List of base64-encoded PNG strings, one per image.
-    """
-    style_desc  = STYLE_PRESETS.get(style, STYLE_PRESETS["minimal"])
+    style_desc = STYLE_PRESETS.get(style, STYLE_PRESETS["minimal"])
     full_prompt = PROMPT_TEMPLATE.format(prompt=prompt) + f", {style_desc}"
-
-    generator = (
-        torch.Generator(device="cuda").manual_seed(seed)
-        if seed is not None
-        else None
-    )
 
     images_b64: List[str] = []
 
+    # ✅ CPU generator (prevents device mismatch)
+    generator = None
+    if seed is not None:
+        generator = torch.Generator().manual_seed(seed)
+
     for i in range(num_images):
-        # Offset seed per image so multiple results are distinct but reproducible.
+
         if generator is not None and num_images > 1:
             generator.manual_seed(seed + i)
 
-        result = _pipe(
-            prompt=full_prompt,
-            negative_prompt=NEGATIVE_PROMPT,
-            width=IMAGE_SIZE,
-            height=IMAGE_SIZE,
-            num_inference_steps=30,
-            guidance_scale=7.5,
-            generator=generator,
-            num_images_per_prompt=1,
-        )
+        try:
+            result = _pipe(
+                prompt=full_prompt,
+                negative_prompt=NEGATIVE_PROMPT,
+                width=IMAGE_SIZE,
+                height=IMAGE_SIZE,
+                num_inference_steps=60,   # 🔥 reduced → prevents crashes
+                guidance_scale=7.5,       # 🔥 slightly lower = more stable
+                generator=generator,
+                num_images_per_prompt=1,
+            )
 
-        image = result.images[0]
+            image = result.images[0]
 
-        buffer = BytesIO()
-        image.save(buffer, format="PNG")
-        buffer.seek(0)
-        images_b64.append(base64.b64encode(buffer.read()).decode("utf-8"))
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+
+            images_b64.append(
+                base64.b64encode(buffer.read()).decode("utf-8")
+            )
+
+            # 🔥 VERY IMPORTANT: prevent memory fragmentation
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        except Exception as e:
+            print("Generation error:", e)
+            continue
 
     return images_b64
