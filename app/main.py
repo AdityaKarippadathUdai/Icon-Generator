@@ -1,24 +1,36 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from starlette.requests import Request
 
-from app.model import generate_icon
+from schemas import GenerateRequest, GenerateResponse
+from model import generate_icon
 
-app = FastAPI()
+# ---------------------------------------------------------------------------
+# App setup
+# ---------------------------------------------------------------------------
+
+app = FastAPI(title="AI Icon Generator")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.get("/")
+def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/generate-icon")
-def generate(data: dict):
+
+@app.post("/generate-icon", response_model=GenerateResponse)
+def generate(request: GenerateRequest):
     images = generate_icon(
-        prompt=data["prompt"],
-        num_images=data.get("num_images", 1)
+        prompt=request.prompt,
+        style=request.style,
+        num_images=request.num_images,
+        seed=request.seed,
     )
-    return {"images": images}
+    return GenerateResponse(images=images)
