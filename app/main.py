@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from schemas import GenerateRequest, GenerateResponse
-from model import generate_icon
+from app.model import generate_icon
+from app.schemas import GenerateRequest, GenerateResponse
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -20,7 +20,7 @@ templates = Jinja2Templates(directory="app/templates")
 # Routes
 # ---------------------------------------------------------------------------
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 

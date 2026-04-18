@@ -1,5 +1,4 @@
-MODEL_PATH = "models/v1-5-pruned-emaonly.safetensors"
-
+MODEL_PATH = "/home/aditya/Project/icon_generator/models/v1-5-pruned-emaonly.safetensors"
 IMAGE_SIZE = 512
 
 NEGATIVE_PROMPT = "realistic, photo, 3d, shadows, gradients, messy, text, watermark"

@@ -5,13 +5,25 @@ from typing import List, Optional
 import torch
 from diffusers import StableDiffusionPipeline
 
-from config import (
-    BASE_PROMPT_TEMPLATE,
-    IMAGE_SIZE,
-    MODEL_PATH,
-    NEGATIVE_PROMPT,
-    STYLE_PRESETS,
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+MODEL_PATH    = "/home/aditya/Project/icon_generator/models/v1-5-pruned-emaonly.safetensors"
+IMAGE_SIZE    = 512
+NEGATIVE_PROMPT = "realistic, photo, 3d, shadows, messy, text"
+
+PROMPT_TEMPLATE = (
+    "A clean minimalist flat icon of {prompt}, "
+    "vector style, black outline, white background"
 )
+
+STYLE_PRESETS = {
+    "minimal": "minimal linework, clean outlines, simple shapes, monochrome",
+    "filled":  "bold filled shapes, flat colors, solid design, no outlines",
+    "neon":    "neon glowing colors, dark background, vibrant electric hues, luminous edges",
+}
+
 
 # ---------------------------------------------------------------------------
 # Model loading
@@ -22,12 +34,13 @@ def _load_pipeline() -> StableDiffusionPipeline:
         MODEL_PATH,
         torch_dtype=torch.float16,
         use_safetensors=True,
+        local_files_only=True,
     )
     pipe.to("cuda")
 
     # Low-VRAM optimisations
     pipe.enable_attention_slicing()
-    pipe.enable_vae_slicing()
+    pipe.vae.enable_slicing()          # replaces deprecated enable_vae_slicing()
     pipe.enable_model_cpu_offload()
 
     return pipe
@@ -43,8 +56,8 @@ _pipe: StableDiffusionPipeline = _load_pipeline()
 
 def generate_icon(
     prompt: str,
-    style: str,
-    num_images: int,
+    style: str = "minimal",
+    num_images: int = 1,
     seed: Optional[int] = None,
 ) -> List[str]:
     """
@@ -59,8 +72,8 @@ def generate_icon(
     Returns:
         List of base64-encoded PNG strings, one per image.
     """
-    style_desc = STYLE_PRESETS.get(style, STYLE_PRESETS["minimal"])
-    full_prompt = BASE_PROMPT_TEMPLATE.format(object=prompt, style=style_desc)
+    style_desc  = STYLE_PRESETS.get(style, STYLE_PRESETS["minimal"])
+    full_prompt = PROMPT_TEMPLATE.format(prompt=prompt) + f", {style_desc}"
 
     generator = (
         torch.Generator(device="cuda").manual_seed(seed)
@@ -71,8 +84,7 @@ def generate_icon(
     images_b64: List[str] = []
 
     for i in range(num_images):
-        # Use a unique seed per image when a base seed is supplied so that
-        # multiple results are distinct but still reproducible.
+        # Offset seed per image so multiple results are distinct but reproducible.
         if generator is not None and num_images > 1:
             generator.manual_seed(seed + i)
 
