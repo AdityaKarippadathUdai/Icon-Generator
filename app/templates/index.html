@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+</head>
+<body>
+
+<h2>AI Icon Generator</h2>
+
+<input id="prompt" placeholder="coffee cup">
+<button onclick="gen()">Generate</button>
+
+<div id="out"></div>
+
+<script>
+async function gen() {
+    const prompt = document.getElementById("prompt").value;
+
+    const res = await fetch("/generate-icon", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({prompt})
+    });
+
+    const data = await res.json();
+
+    const out = document.getElementById("out");
+    out.innerHTML = "";
+
+    data.images.forEach(img => {
+        const el = document.createElement("img");
+        el.src = "data:image/png;base64," + img;
+        el.width = 128;
+        out.appendChild(el);
+    });
+}
+</script>
+
+</body>
+</html>
