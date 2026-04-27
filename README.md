@@ -313,6 +313,36 @@ Pillow
 opencv-python-headless
 numpy
 ```
+---
+
+# 📦 Pull from GitHub Container Registry
+
+The Docker image for this project is available via GitHub Container Registry.
+
+#### 🔗 Image
+
+```
+ghcr.io/adityakarippadathudai/icon-generator:latest
+```
+
+#### 📥 Pull the image
+
+```bash
+docker pull ghcr.io/adityakarippadathudai/icon-generator:latest
+```
+
+#### ▶️ Run the container
+
+```bash
+docker run -p 8000:8000 ghcr.io/adityakarippadathudai/icon-generator:latest
+```
+
+---
+
+### ⚠️ Note
+
+* The image size is large (~9 GB) due to included model weights.
+* Initial pull may take significant time depending on your internet speed.
 
 ---
 
